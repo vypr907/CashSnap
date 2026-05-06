@@ -21,7 +21,7 @@ Bills / Debts
 
 ---
 
-# 📊 Core Tables
+# 📊 Core Tables | [Master Table List](master-tables.md)
 
 | Table              | Primary Role              | Notes                                                  |
 | ------------------ | ------------------------- | ------------------------------------------------------ |
@@ -38,10 +38,10 @@ Bills / Debts
 | Debug Log          | Observability             | Tracks bot/process execution                           |
 
 ---
-
-<details>
-<summary>Test</summary>
-</details>
+---
+---
+---
+---
 
 # 🔹 [Bills](bills.md)
 <details>
@@ -519,56 +519,4 @@ Each major table should eventually have its own document covering:
 
 ---
 
-# Table Master List
-
-| Table              | Description                                   | Source |
-| ------------------ | --------------------------------------------- | ---------- |
-| Accounts | | CashSnap |
-| Adjustments || CashSnap |
-| Appointments || MedData |
-| ApptIssues || MedDate |
-| Bill Charges || CashSnap |
-| Bills || CashSnap |
-| Categories || CashSnap |
-| Categories || Armoury |
-| Context || CashSnap |
-| Context 2 || MedData |
-| Debt Charges || CashSnap |
-| debt_mgmt_menu || CashSnap |
-| Debts || CashSnap |
-| Debug Log || CashSnap |
-| DebugLog || MedData |
-| Ledger || CashSnap |
-| Deductible_Tracker || MedData |
-| Entities || Armoury |
-| Entity_Categories || Armoury |
-| Entity_Roles || Armoury |
-| Family_Members || MedData |
-| HSA_Accounts || MedData |
-| HSA_Transactions || MedData |
-| Income || CashSnap |
-| Income Deposits || CashSnap_db_02 |
-| Installment Schedule || CashSnap_db_02 |
-| Insurance_Claims || MedData |
-| Invoice_LineItems || MedData |
-| Ledger || CashSnap |
-| Loan_Pmt_Splits || CashSnap |
-| Medical_Expenses || MedData |
-| Medical_Issues || MedData |
-| Medical_Organizations || MedData |
-| Medications || MedData |
-| Org_Invoices || MedData |
-| Organization_Balances || MedData |
-| Pay Period || CashSnap_db_02 |
-| Paycheck Selector || CashSnap |
-| PaymentAllocations || CashSnap |
-| Payments || CashSnap |
-| PayPeriod_Generator || CashSnap_db_02 |
-| Pharmacy_Fill_Log || MedData |
-| Provider_Balances || MedData |
-| Provider_Transactions || MedData |
-| Providers || MedData |
-| Statements || CashSnap |
-| Summary Totals || CashSnap |
-| Transaction Links || CashSnap |
-| UserSettings || CashSnap |    
+# [Master Table List](master-tables.md)
