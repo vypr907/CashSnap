@@ -145,7 +145,7 @@ Payments are the cash event, not necessarily the final accounting effect.
 ---
 ---
 
-# 🔹 Transaction Links
+# 🔹 [Transaction Links](transaction-links.md)
 <details>
 
 ## Purpose
@@ -178,7 +178,7 @@ A $256.50 payment may split across:
 ---
 ---
 
-# 🔹 Ledger
+# 🔹 [Ledger](ledger.md)
 <details>
 
 ## Purpose
@@ -337,7 +337,8 @@ Allocation types:
 ---
 ---
 
-# 🔹 Debt Charges
+# 🔹 [Debt Charges](debt-charges.md)
+<details>
 
 ## Purpose
 
@@ -375,9 +376,13 @@ Unless principal installments are intentionally modeled as charges.
 | PaymentAllocations | Interest/Fee allocations may link to charges     |
 | Ledger             | Debt Charge creation creates positive ledger row |
 
+</details>
+
+---
 ---
 
-# 🔹 Adjustments
+# 🔹 [Adjustments](adjustments.md)
+<details>
 
 ## Purpose
 
@@ -400,9 +405,14 @@ Examples:
 | Statements    | Optional Statement link                              |
 | Ledger        | Should create ledger rows where financially relevant |
 
+</details>
+
+---
 ---
 
 # 🔹 Debug Log
+
+<details>
 
 ## Purpose
 
@@ -434,6 +444,9 @@ Used to answer:
 * Ledger ID
 * ProcessRunID
 
+</details>
+
+---
 ---
 
 # 🔗 Major Relationships
@@ -503,3 +516,59 @@ Each major table should eventually have its own document covering:
 * Related workflows
 * Known issues
 * Repair notes
+
+---
+
+# Table Master List
+
+| Table              | Description                                   | Source |
+| ------------------ | --------------------------------------------- | ---------- |
+| Accounts | | CashSnap |
+| Adjustments || CashSnap |
+| Appointments || MedData |
+| ApptIssues || MedDate |
+| Bill Charges || CashSnap |
+| Bills || CashSnap |
+| Categories || CashSnap |
+| Categories || Armoury |
+| Context || CashSnap |
+| Context 2 || MedData |
+| Debt Charges || CashSnap |
+| debt_mgmt_menu || CashSnap |
+| Debts || CashSnap |
+| Debug Log || CashSnap |
+| DebugLog || MedData |
+| Ledger || CashSnap |
+| Deductible_Tracker || MedData |
+| Entities || Armoury |
+| Entity_Categories || Armoury |
+| Entity_Roles || Armoury |
+| Family_Members || MedData |
+| HSA_Accounts || MedData |
+| HSA_Transactions || MedData |
+| Income || CashSnap |
+| Income Deposits || CashSnap_db_02 |
+| Installment Schedule || CashSnap_db_02 |
+| Insurance_Claims || MedData |
+| Invoice_LineItems || MedData |
+| Ledger || CashSnap |
+| Loan_Pmt_Splits || CashSnap |
+| Medical_Expenses || MedData |
+| Medical_Issues || MedData |
+| Medical_Organizations || MedData |
+| Medications || MedData |
+| Org_Invoices || MedData |
+| Organization_Balances || MedData |
+| Pay Period || CashSnap_db_02 |
+| Paycheck Selector || CashSnap |
+| PaymentAllocations || CashSnap |
+| Payments || CashSnap |
+| PayPeriod_Generator || CashSnap_db_02 |
+| Pharmacy_Fill_Log || MedData |
+| Provider_Balances || MedData |
+| Provider_Transactions || MedData |
+| Providers || MedData |
+| Statements || CashSnap |
+| Summary Totals || CashSnap |
+| Transaction Links || CashSnap |
+| UserSettings || CashSnap |    
