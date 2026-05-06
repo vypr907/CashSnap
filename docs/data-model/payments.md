@@ -1,18 +1,14 @@
 # 💵 Payments Table
 
-## 🎯 Purpose
+---
 
-The **Payments** table represents cash movement into the system.
+## purpose
 
-Payments:
-
-* Do NOT directly change balances
-* Trigger allocation workflows
-* Serve as the starting point for financial processing
+The **Payments** table represents cash entering the system.
 
 ---
 
-# 🧠 Core Concept
+## core-concept
 
 ```text
 Payment = cash event
@@ -22,155 +18,156 @@ Ledger = financial truth
 
 ---
 
-# 🧱 Key Columns
+## table-role
 
-## Identity
+Payments:
 
-| Column       | Description  |
-| ------------ | ------------ |
-| Row ID       | Primary key  |
-| Payment Name | Display name |
-
----
-
-## Financial
-
-| Column           | Description                |
-| ---------------- | -------------------------- |
-| Amount Paid      | Payment amount             |
-| Date             | Payment date               |
-| Effective Amount | May include reversal logic |
+* Trigger allocation flows
+* Link to Bills or Debts
+* Drive Ledger creation
 
 ---
 
-## Classification
+## column-inventory
 
-| Column         | Description     |
-| -------------- | --------------- |
-| Type           | Bill / Debt     |
-| Payment Method | Ref to Accounts |
+<details>
+<summary>View Column Inventory</summary>
 
----
+| Column                | Type   | App Formula                                    | Initial Value | Notes           |
+| --------------------- | ------ | ---------------------------------------------- | ------------- | --------------- |
+| Row ID                | Text   |                                                | `UNIQUEID()`  | Key             |
+| Payment Name          | Text   |                                                |               | Display         |
+| Amount Paid           | Price  |                                                |               | Amount          |
+| Date                  | Date   |                                                |               | Payment date    |
+| Type                  | Enum   |                                                |               | Bill / Debt     |
+| Bill ID               | Ref    |                                                |               | Optional        |
+| Debt ID               | Ref    |                                                |               | Optional        |
+| Cleared               | Yes/No |                                                |               | Status          |
+| Cleared Date          | Date   |                                                |               |                 |
+| Payment Status        | Enum   |                                                |               | Pending/Cleared |
+| Statement_ID          | Ref    |                                                |               | Optional        |
+| Reverses Payment      | Ref    |                                                |               |                 |
+| Return Date           | Date   |                                                |               |                 |
+| Remaining To Allocate | Price  | [View Formula](#remaining-to-allocate-formula) |               | Core            |
+| Processed             | Yes/No |                                                |               | Bot gating      |
 
-## Status
-
-| Column         | Description                  |
-| -------------- | ---------------------------- |
-| Cleared        | TRUE/FALSE                   |
-| Cleared Date   | When finalized               |
-| Payment Status | Pending / Cleared / Returned |
-
----
-
-## Relationships
-
-| Column           | Description        |
-| ---------------- | ------------------ |
-| Bill ID          | Bill linkage       |
-| Debt ID          | Debt linkage       |
-| Statement_ID     | Optional statement |
-| Reverses Payment | Link to original   |
-| Return Date      | For reversals      |
+</details>
 
 ---
 
-## Allocation Helpers
+## key-virtual-columns
 
-| Column                | Description                |
-| --------------------- | -------------------------- |
-| Remaining To Allocate | Tracks allocation progress |
-| NextChargeID          | For bill allocation        |
-| Processed             | Prevents duplicate runs    |
-| TriggerSource         | Bot tracking               |
+<details>
+<summary>View Virtual Columns</summary>
+
+| Column                | Type  | Formula                                        |
+| --------------------- | ----- | ---------------------------------------------- |
+| Remaining To Allocate | Price | [View Formula](#remaining-to-allocate-formula) |
+
+</details>
 
 ---
 
-# 🔄 Payment Flow
+## formulas
 
-```text
+---
+
+### remaining-to-allocate-formula
+
+<details>
+<summary>View Formula</summary>
+
+```appsheet
+[Amount Paid]
+- SUM(
+  SELECT(
+    Transaction Links[Amount Applied],
+    [Payment ID] = [_THISROW].[Row ID]
+  )
+)
+- SUM(
+  SELECT(
+    PaymentAllocations[Amount],
+    [PaymentID] = [_THISROW].[Row ID]
+  )
+)
+```
+
+</details>
+
+---
+
+## flows
+
+<details>
+<summary>View Payment Flow</summary>
+
 Payment Created
-→ Allocation Process Starts
-→ Transaction Links OR PaymentAllocations created
-→ Ledger entries generated
-→ Payment fully allocated
-```
+→ Allocation begins
+→ Links / Allocations created
+→ Ledger rows created
+→ Fully allocated
+
+</details>
 
 ---
 
-# 🔁 Reversal Flow
+## rules
 
-```text
-Reverse Payment Created
-→ Mirror allocations created
-→ Ledger reversal rows created
-→ Original payment marked returned
-```
+<details>
+<summary>View Rules</summary>
 
----
+### must-be-allocated
 
-# ⚠️ Critical Rules
-
-## 1. Payments do not directly affect balances
-
-They must go through:
-
-* Transaction Links (Bills)
-* PaymentAllocations (Debts)
+Remaining To Allocate must reach 0
 
 ---
 
-## 2. Cleared status matters
+### cleared-matters
 
-Only cleared payments should affect financial state.
-
----
-
-## 3. Allocation must fully consume payment
-
-```text
-Remaining To Allocate = 0
-```
+Only cleared payments should count
 
 ---
 
-## 4. Reversals must mirror original allocations
+### no-direct-balance-impact
+
+Must go through allocations
+
+</details>
 
 ---
 
-# ⚠️ Common Issues
+## known-issues
 
-| Issue                    | Cause                    |
-| ------------------------ | ------------------------ |
-| Payment not applied      | Allocation not triggered |
-| Partial allocation stuck | Remaining not processed  |
-| Double allocation        | Bot re-trigger           |
-| Wrong statement linkage  | Date mismatch            |
+<details>
+<summary>View Known Issues</summary>
 
----
+| Issue       | Cause             |
+| ----------- | ----------------- |
+| Not applied | Allocation failed |
+| Partial     | Remaining stuck   |
+| Duplicate   | Bot re-trigger    |
 
-# 🧪 Debug Tips
-
-For a Payment:
-
-1. Check:
-
-   * Transaction Links (Bills)
-   * PaymentAllocations (Debts)
-
-2. Verify:
-
-   * Remaining To Allocate = 0
-   * Ledger rows exist
-
-3. Trace using:
-
-   * TraceID
-   * Debug Log
+</details>
 
 ---
 
-# 🔗 Related Docs
+## debug-strategy
 
-* `docs/data-model/transaction-links.md`
-* `docs/data-model/payment-allocations.md`
+<details>
+<summary>View Debug Strategy</summary>
+
+Check:
+
+* Transaction Links
+* PaymentAllocations
+* Ledger
+
+</details>
+
+---
+
+## related-docs
+
+* `docs/data-model/ledger.md`
 * `docs/workflows/new-payment-flow.md`
