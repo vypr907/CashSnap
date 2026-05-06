@@ -25,21 +25,26 @@ Bills / Debts
 
 | Table              | Primary Role              | Notes                                                  |
 | ------------------ | ------------------------- | ------------------------------------------------------ |
-| Bills              | Recurring obligations     | Includes simple due-date and statement-cycle bills     |
-| Bill Charges       | Bill instances            | One charge per bill cycle/period                       |
-| Payments           | Cash movement             | Applies to bills or debts                              |
-| Transaction Links  | Bill payment allocations  | Links Payments to Bill Charges                         |
-| Ledger             | Financial source of truth | Records all financial effects                          |
-| Debts              | Debt accounts             | Loans, credit cards, personal debts, installments      |
-| Statements         | Statement periods         | Used mainly for credit cards and statement-based loans |
-| PaymentAllocations | Debt payment splits       | Principal / Interest / Fee allocations                 |
-| Debt Charges       | Debt-side charges         | Interest, fees, penalties, purchases if modeled        |
+| [Bills](bills.md)              | Recurring obligations     | Includes simple due-date and statement-cycle bills     |
+| [Bill Charges](bill-charges.md)       | Bill instances            | One charge per bill cycle/period                       |
+| [Payments](payments.md)           | Cash movement             | Applies to bills or debts                              |
+| [Transaction Links](transaction-links.md)  | Bill payment allocations  | Links Payments to Bill Charges                         |
+| [Ledger](ledger.md)             | Financial source of truth | Records all financial effects                          |
+| [Debts](debts.md)              | Debt accounts             | Loans, credit cards, personal debts, installments      |
+| [Statements](statements.md)         | Statement periods         | Used mainly for credit cards and statement-based loans |
+| [PaymentAllocations](payment-allocations.md) | Debt payment splits       | Principal / Interest / Fee allocations                 |
+| [Debt Charges](debt-charges.md)       | Debt-side charges         | Interest, fees, penalties, purchases if modeled        |
 | Adjustments        | Manual corrections        | Bill/debt corrections and statement credits            |
 | Debug Log          | Observability             | Tracks bot/process execution                           |
 
 ---
 
-# 🔹 Bills
+<details>
+<summary>Test</summary>
+</details>
+
+# 🔹 [Bills](bills.md)
+<details>
 
 ## Purpose
 
@@ -71,9 +76,13 @@ Bills may use different billing models:
 | Transaction Links | Payments allocated to Bill Charges           |
 | Ledger            | Bill charges and payments create ledger rows |
 
+</details>
+
+---
 ---
 
-# 🔹 Bill Charges
+# 🔹 [Bill Charges](bill-charges.md)
+<details>
 
 ## Purpose
 
@@ -101,9 +110,13 @@ Example:
 | Ledger            | One Bill Charge → Many Ledger rows       |
 | Adjustments       | Optional corrections                     |
 
+</details>
+
+---
 ---
 
-# 🔹 Payments
+# 🔹 [Payments](payments.md)
+<details>
 
 ## Purpose
 
@@ -127,9 +140,13 @@ Payments are the cash event, not necessarily the final accounting effect.
 | Ledger             | Financial effects              |
 | Statements         | Optional statement association |
 
+</details>
+
+---
 ---
 
 # 🔹 Transaction Links
+<details>
 
 ## Purpose
 
@@ -156,9 +173,13 @@ A $256.50 payment may split across:
 | Bill Charges  | Each Transaction Link applies to one Bill Charge |
 | Ledger        | Usually creates one ledger row                   |
 
+</details>
+
+---
 ---
 
 # 🔹 Ledger
+<details>
 
 ## Purpose
 
@@ -201,9 +222,13 @@ All meaningful financial events should create Ledger rows.
 * Charge Category
 * Allocation Type
 
+</details>
+
+---
 ---
 
-# 🔹 Debts
+# 🔹 [Debts](debts.md)
+<details>
 
 ## Purpose
 
@@ -238,9 +263,13 @@ Debts may differ by model:
 | Debt Charges       | Interest/fee obligations       |
 | Ledger             | Debt financial source of truth |
 
+</details>
+
+---
 ---
 
-# 🔹 Statements
+# 🔹 [Statements](statements.md)
+<details>
 
 ## Purpose
 
@@ -268,9 +297,13 @@ Used for:
 | Debt Charges       | Interest/fees may link to Statements |
 | Ledger             | Ledger rows may link to Statements   |
 
+</details>
+
+---
 ---
 
-# 🔹 PaymentAllocations
+# 🔹 [PaymentAllocations](payment-allocations.md)
+<details>
 
 ## Purpose
 
@@ -299,6 +332,9 @@ Allocation types:
 | Debt Charges  | Interest/Fee allocations link to charges         |
 | Ledger        | Each allocation should create one ledger row     |
 
+</details>
+
+---
 ---
 
 # 🔹 Debt Charges
