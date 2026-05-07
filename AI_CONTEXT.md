@@ -423,6 +423,89 @@ related-docs
 
 ---
 
+# AI Context — Loan Statement Process Update
+
+<a id="ai-context-loan-statement-process-update"></a>
+
+<details open>
+<summary><strong>Context Summary</strong></summary>
+
+<a id="context-summary"></a>
+
+CashSnap is repairing the `Loan (Statement-Based)` workflow for the auto loan. The intended model is:
+
+```text
+Statements + Loan_Pmt_Splits = split instructions
+PaymentAllocations = applied split records
+Debt Charges = interest/fee owed
+Ledger = financial source of truth
+```
+
+The repair plan is documented in:
+
+- [Loan Statement Process Repair Plan](docs/processes/loan-statement-process-repair-plan.md#loan-statement-process-repair-plan)
+
+</details>
+
+---
+
+<details>
+<summary><strong>Current Repair Progress</strong></summary>
+
+<a id="current-repair-progress"></a>
+
+## Completed
+
+<a id="completed"></a>
+
+- Disabled `Split Happens` because it only created duplicate Interest `Debt Charges` from `Loan_Pmt_Splits`.
+- Created all missing `Principal Applied` ledgers for current Principal `PaymentAllocations`.
+
+## In Progress / Next
+
+<a id="in-progress-next"></a>
+
+- Update the general `Statement Bot` condition so it does not run on `Loan (Statement-Based)` debts.
+- Continue repairing missing Interest Payment ledgers and allocation/charge links.
+- Neutralize old full-payment `Debt Payment` ledgers if split ledgers exist.
+
+</details>
+
+---
+
+<details>
+<summary><strong>Important Formulas / Conditions</strong></summary>
+
+<a id="important-formulas-conditions"></a>
+
+## General Statement Bot Exclusion
+
+<a id="general-statement-bot-exclusion"></a>
+
+Use this condition to prevent the general `Statement Bot` from processing loan statements:
+
+```appsheet
+OR(
+  ISBLANK([Debt_ID].[Model]),
+  [Debt_ID].[Model] <> "Loan (Statement-Based)"
+)
+```
+
+## Loan Statement Bot Condition
+
+<a id="loan-statement-bot-condition"></a>
+
+The dedicated `Loan Statement Bot` condition is:
+
+```appsheet
+[Debt_ID].[Model] = "Loan (Statement-Based)"
+```
+
+</details>
+
+
+---
+
 ## related-docs
 
 * `README.md`
