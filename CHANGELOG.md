@@ -1,10 +1,54 @@
-# CHANGELOG
+# 📚 CHANGELOG
 
 <a id="changelog"></a>
 
-All notable CashSnap changes should be documented here.
+> All notable CashSnap changes should be documented here.
+>
+> This changelog is intentionally append-friendly.
+>
+> Add new entries to the TOP of the appropriate section rather than regenerating the entire document.
+
 
 ---
+# 🚀 Recent Changes
+
+<details open>
+<summary><strong>2026-05-08 — Documentation Overhaul</strong></summary>
+
+<a id="2026-05-08-documentation-overhaul"></a>
+
+### Documentation
+
+- Added standardized table documentation template
+- Added `statements.md` using new table template
+- Added `/docs/templates/` folder for reusable documentation templates
+- Standardized CashSnap bot/process/table documentation styling
+- Added toggle-heavy markdown structure with Mermaid placeholders and testing checklists
+
+---
+
+# 📂 Documentation Structure
+
+```text
+/docs
+  /bots
+  /processes
+  /tables
+  /templates
+```
+
+---
+
+# 🧠 Documentation Philosophy
+
+- Append new changes instead of rewriting history
+- Keep newest entries at the top
+- Prefer small focused updates
+- Use collapsible sections for readability
+- Keep formulas and Mermaid diagrams embedded with related systems
+
+</details>
+
 
 <details open>
 <summary><strong>2026-05-07 — Loan Statement Process Repair</strong></summary>

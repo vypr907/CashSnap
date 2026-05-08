@@ -503,6 +503,87 @@ The dedicated `Loan Statement Bot` condition is:
 
 </details>
 
+# AI_CONTEXT.loan-statement-process-update.md
+
+## Documentation Standards Update
+
+CashSnap now includes a dedicated:
+
+```text
+/docs/templates/
+```
+
+folder for reusable markdown documentation templates.
+
+Current standardized templates include:
+
+- Bot documentation template
+- Table documentation template
+
+Documentation conventions now include:
+
+- Heavy use of <details> toggles
+- Emoji section headers
+- Mermaid diagram placeholders
+- Formula reference sections
+- Testing checklists
+- Edge-case sections
+- Cross-reference sections
+- Append-friendly changelog structure
+
+---
+
+## Statements Table Updates
+
+Statements now support dual reconciliation models:
+
+### Credit Card / Statement Charge Model
+
+Reconciles:
+
+```text
+Prev Balance
++ Purchases
++ Fees
++ Interest
+- Payments
+± Adjustments
+```
+
+### Loan (Statement-Based)
+
+Reconciles:
+
+```text
+Previous Principal Balance
+- Principal Paid
+```
+
+Interest tracking path:
+
+```text
+Loan_Pmt_Splits
+→ PaymentAllocations
+→ Debt Charges
+→ Ledger
+```
+
+---
+
+## Current Loan Statement Repair Progress
+
+Completed:
+
+- Disabled Split Happens duplicate interest path
+- Added Principal Applied ledger generation
+- Refactored Payment Allocation bot flow
+- Added model-aware statement formulas
+
+Next focus areas:
+
+- Ledger integrity validation
+- Installment principal charge handling
+- Transaction Link reconciliation
 
 ---
 
