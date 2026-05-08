@@ -587,6 +587,65 @@ Next focus areas:
 
 ---
 
+# AI_CONTEXT Update — Auto Loan Ledger Repair
+
+> Last Updated: 2026-05-08
+
+## Summary
+
+CashSnap Auto Loan repair continued. The Auto Loan is a `Loan (Statement-Based)` debt and is being aligned with the Ledger-as-source-of-truth model.
+
+## Current State
+
+Current values after refresh:
+
+```text
+Starting Balance: 20524.00
+Paid So Far: 13923.49
+Remaining Balance: 12974.00
+Principal Paid: 10272.16
+Principal_Balance: 10251.84
+Interest_Balance: 2722.96
+Interest Charged: 2845.41
+Interest Paid: 122.45
+Ledger Balance: 10251.84
+```
+
+## Interpretation
+
+Principal side is now working:
+
+```text
+Starting Balance - Principal Paid = Principal_Balance
+20524.00 - 10272.16 = 10251.84
+```
+
+Ledger Balance also matches Principal_Balance, confirming the principal-applied ledger model is working.
+
+Remaining issue is interest-side repair. `Interest Paid` is too low and likely only detecting one or a few interest payment ledger rows.
+
+## Recommended Next Step
+
+Inspect and repair Auto Loan interest payment Ledger rows. Populate missing:
+
+- Allocation Type
+- Charge Category
+- Debt Charge ID
+- PmtAllocID
+- StatementID
+
+Then recheck `Interest Paid` and `Interest_Balance`.
+
+## Documentation Preference Reminder
+
+Changelog updates should be append-friendly and include:
+
+- Summary
+- Changed
+- Fixed
+- Related Docs
+
+
 ## related-docs
 
 * `README.md`

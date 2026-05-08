@@ -13,6 +13,49 @@
 # 🚀 Recent Changes
 
 <details open>
+<summary><strong>2026-05-08 — Statement-Based Loan Ledger Repair Progress</strong></summary>
+
+<a id="2026-05-08-statement-based-loan-ledger-repair-progress"></a>
+
+### Summary
+
+Continued repair work on CashSnap statement-based loan processing, focused on the Auto Loan debt. The system is being aligned toward the latest Ledger-as-source-of-truth model where PaymentAllocations remain process/audit records, Debt Charges represent interest/fee obligations, and Ledger drives calculated balances.
+
+### Changed
+
+- Updated loan balance logic direction so `Principal_Balance`, `Interest_Balance`, `Interest Charged`, `Interest Paid`, and `Principal Paid` should read primarily from Ledger-derived values.
+- Confirmed `Principal Applied` ledger rows are the correct mechanism for reducing principal on `Loan (Statement-Based)` debts.
+- Adjusted `Affects Balance?` logic so `Principal Applied` rows can affect loan balances even when `Debt Charge ID` is blank.
+- Confirmed that `Loan (Statement-Based)` principal should not require a principal Debt Charge.
+- Clarified that statement-based loan interest should flow through `Loan_Pmt_Splits` → `PaymentAllocations` → `Debt Charges` → `Ledger`.
+
+### Fixed
+
+- Identified stale physical formula columns as a source of confusing loan balance results; refreshing the Debt row allowed formulas to recalculate correctly.
+- Resolved principal-side calculation mismatch:
+  - Starting Balance: `20524.00`
+  - Principal Paid: `10272.16`
+  - Principal Balance: `10251.84`
+  - Ledger Balance: `10251.84`
+- Confirmed remaining issue is interest-side repair:
+  - Interest Charged: `2845.41`
+  - Interest Paid: `122.45`
+  - Interest Balance: `2722.96`
+- Determined `Interest Paid` is likely only detecting a subset of interest payment ledger rows due to missing or inconsistent fields such as `Allocation Type`, `Charge Category`, `Debt Charge ID`, or Ledger `Type`.
+
+### Related Docs
+
+- `docs/processes/loan-statement-process-repair-plan.md`
+- `docs/processes/auto-loan-repair-status.md`
+- `docs/formulas/debt-ledger-ssot-formulas.md`
+- `docs/tables/ledger.md`
+- `docs/tables/debts.md`
+- `docs/tables/statements.md`
+- `docs/bots/pmt-allocation-bot.md`
+
+</details>
+
+<details open>
 <summary><strong>2026-05-08 — Documentation Overhaul</strong></summary>
 
 <a id="2026-05-08-documentation-overhaul"></a>
