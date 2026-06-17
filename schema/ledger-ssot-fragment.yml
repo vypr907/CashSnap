@@ -1,0 +1,54 @@
+# CashSnap schema fragment — Bill Charges Remaining Amount Ledger SSOT
+# Date: 2026-06-17
+
+tables:
+  Bill Charges:
+    columns:
+      Remaining Amount:
+        type: Price
+        column_kind: Virtual/App formula
+        source_of_truth: Ledger
+        app_formula: |
+          MAX(
+            LIST(
+              0.0,
+              SUM(
+                SELECT(
+                  Ledger[Signed Amount],
+                  AND(
+                    [Bill Charge ID] = [_THISROW].[Row ID],
+                    ISNOTBLANK([Signed Amount])
+                  )
+                )
+              )
+            )
+          )
+        replaces_formula: |
+          IF(
+            [Amount]
+            + SUM([Related Adjustments][Signed Amount])
+            - SUM([Related Transaction Links][Amount Applied])
+            > 0,
+            [Amount]
+            + SUM([Related Adjustments][Signed Amount])
+            - SUM([Related Transaction Links][Amount Applied]),
+            0.0
+          )
+        dependencies:
+          - Ledger[Bill Charge ID]
+          - Ledger[Signed Amount]
+        migration_required: true
+        migration_note: Backfill original positive Charge ledger rows for historical Bill Charges before production cutover.
+
+  Ledger:
+    columns:
+      Signed Amount:
+        purpose: Balance math value used by Ledger SSOT calculations.
+        sign_contract:
+          Charge: positive
+          Bill Payment: negative
+          Adjustment fee/debit: positive
+          Adjustment credit: negative
+          Payment Reversal: positive
+      Bill Charge ID:
+        purpose: Ref linking ledger rows to the affected Bill Charges row.

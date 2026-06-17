@@ -12,6 +12,38 @@
 ---
 # 🚀 Recent Changes
 
+
+<details open>
+<summary><strong>2026-06-17 - Bill Charges Remaining Amount uses Ledger SSOT</strong></summary>
+
+<a id="2026-06-17-bill-charges-remaining-amount-uses-ledger-ssot"></a>
+
+### Summary
+
+Updated `Bill Charges[Remaining Amount]` so the balance is calculated from `Ledger[Signed Amount]` instead of directly summing `Bill Charges[Amount]`, `Related Adjustments`, and `Related Transaction Links`.
+
+### Changed
+
+- Replaced legacy remaining balance formula with a Ledger-based formula.
+- Documented the requirement that every Bill Charge must have an original positive `Charge` ledger row.
+- Documented the ledger sign convention for bill charges, bill payments, adjustments, returned payments, and reversals.
+- Added reconciliation formulas for comparing the old calculation against the new ledger calculation before production cutover.
+
+### Fixed
+
+- Prevents `Bill Charges[Remaining Amount]` from bypassing Ledger when payments, reversals, returned payments, or corrections occur.
+- Reduces the risk of balance drift between `Transaction Links`, `Adjustments`, and `Ledger`.
+- Makes returned payments easier to handle because the remaining balance changes when a signed reversal ledger row is added.
+
+### Related Docs
+
+- `docs/tables/bill-charges.md`
+- `docs/tables/ledger.md`
+- `docs/context/AI_CONTEXT.bill-charge-ledger-ssot.md`
+- `docs/decisions/ADR-0002-ledger-ssot-for-bill-charge-balances.md`
+
+</details>
+
 <details open>
 <summary><strong>2026-05-08 — Statement-Based Loan Ledger Repair Progress</strong></summary>
 
