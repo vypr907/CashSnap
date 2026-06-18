@@ -307,21 +307,80 @@ tables:
     purpose: Payment methods, funding sources, and balance containers.
     columns:
       Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
-      Account Name: {type: Text, label: true}
+      Acct Label: 
+        type: Text
+        formula_summary: Account Name + Account Type label.
+        formula: |
+          CONCATENATE([Name], " ",[Type]," - ", RIGHT([AccountNum],4))
+      Name: {type: Text}
+      AccountNum: {type: Text, notes: Last 4 digits or full account number based on user preference.}
+      Description: {type: LongText}
+      Routing: {type: Text, notes: Optional routing number for bank accounts.}
+      Current Bal: {type: Price, notes: Optional current balance for bank accounts or cash sources.}
       Account Type: {type: Enum, notes: Checking, savings, credit, cash, HSA/FSA, or other funding source classifications.}
-      Active: {type: Yes/No}
-      Notes: {type: LongText}
+      Acct Owner: 
+        type: Enum 
+        values: [Steven, Stephanie]
+      Type: {type: Enum, values: [Checking, Savings, 401K, IRA, Credit Card, Debit Card, Brokerage, HSA]}
+      Linked Accounts: 
+        type: Ref 
+        ref: Accounts
+        notes: Optional linked accounts for transfers or rollups.
+        show_if: '[Type] = "Debit Card"'
+      Last Updated: {type: Date, initial_value: TODAY(), notes: Optional last updated timestamp for account balance tracking.}
+      Source: {type: Text}
+      Limit: {type: Price, show_if: '[Type]="Credit Card"', notes: Optional credit limit for credit accounts.}
+      Entity: {type: Ref, ref: Entity_Roles}
+      Linked Debt: {type: Ref, ref: Debts, required: false}
+      Displayed Balance: 
+        type: Price 
+        virtual: true
+        formula_summary: Used for user-facing balance display; can be current balance, ledger-derived balance, or linked debt balance based on account type and user preference.}
+        formula: |
+          IF(
+            AND([Type] = "Debit Card", ISNOTBLANK([Linked Accounts])),
+            [Linked Accounts].[Current Bal],
+            [Current Bal]
+          )
+      Related Payments: {type: List, virtual: true, ref: Payments}
+      Account Label: 
+        type: Text
+        label: true
+        virtual: true
+        formula_summary: Name + Type + Last 4 digits label.
+        formula: |
+          CONCATENATE([Entity].[Entity_ID].[Name], " ", [Type], " - ", RIGHT([AccountNum], 4))
+      Related Adjustments: {type: List, virtual: true, ref: Adjustments}
+      Related Statements: {type: List, virtual: true, ref: Statements}
+      Related Debts: {type: List, virtual: true, ref: Debts}
+      Related Income Deposits: {type: List, virtual: true, ref: Income_Deposits}
   Adjustments:
     purpose: Manual corrections, credits, fees, waivers, or other non-payment financial adjustments.
     columns:
       Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
-      Debt ID: {type: Ref, ref: Debts, required: false}
-      Bill ID: {type: Ref, ref: Bills, required: false}
+      Name: {type: Text, label: true}
+      Date: {type: Date, initial_value: TODAY()}
+      Debt ID: {type: Ref, ref: Debts, required: false, show_if: '[Type]="Debt"'}
+      Bill ID: {type: Ref, ref: Bills, required: false, show_if: '[Type]="Bill"'}
       Bill Charge ID: {type: Ref, ref: Bill Charges, required: false}
       Amount: {type: Price}
-      Adjustment Type: {type: Enum, notes: Interest/Credit/Fee/etc.}
-      Signed Amount: {type: Price, formula_summary: Interest/Fee positive; Credit/Waiver/Refund/Correction negative.}
+      Type: {type: Enum, values: [Bill, Debt, Account]}
+      Signed Amount: 
+        type: Price
+        formula_summary: Interest/Fee positive; Credit/Waiver/Refund/Correction negative.
+        formula: |
+          [Amount]
+          *
+          IFS(
+            IN([Adjustment Type], {"Fee", "Penalty", "Interest"}), 1,
+            IN([Adjustment Type], {"Credit", "Refund", "Waiver", "Correction"}), -1,
+            TRUE, 1
+          )
       Notes: {type: LongText}
+      Adjustment Type: {type: Enum, values: [Fee, Penalty, Interest, Credit, Refund, Waiver, Correction, Other]}
+      Account: {type: Ref, ref: Accounts, required: false}
+      Statement_ID: {type: Ref, ref: Statements, required: false}
+      Related Ledgers: {type: List, virtual: true, ref: Ledger}
     ledger_contract:
       - Adjustment detail is not final balance source under Ledger SSOT.
       - Balance-affecting adjustments must create Ledger rows with the correct Signed Amount.
