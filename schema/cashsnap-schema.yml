@@ -1,0 +1,793 @@
+# CashSnap Schema Snapshot
+# Last Updated: 2026-06-18
+# Status: working project-source snapshot generated from current CashSnap AI context, table docs, bot docs, and project chat history.
+# Purpose: Load this file into the ChatGPT Project Sources tab so AI tools have a structured, machine-readable map of CashSnap.
+# Note: This is not a raw AppSheet export. Treat it as the current documented schema baseline and update it whenever AppSheet columns/formulas change.
+
+project:
+  name: CashSnap
+  platform: AppSheet
+  ecosystem:
+    - CashSnap
+    - MedRecord
+    - Armoury
+    - ReceiptKeeper
+  role: Financial engine for bills, debts, payments, ledger, statements, allocations, and pay-period planning.
+  architecture_principle: Payments -> Allocations -> Ledger -> Balances
+  ledger_ssot: true
+  documentation_owner: GitHub markdown docs + AI_CONTEXT.md + schema/cashsnap-schema.yml + SCHEMA_CHANGELOG.md
+
+metadata:
+  generated_on: 2026-06-18
+  generated_from:
+    - AI_CONTEXT.md
+    - Ledger table documentation
+    - Pmt Allocation Bot documentation
+    - Bill Charges Ledger SSOT update
+    - Payment Processor Bot / Payment Completion Bot documentation pass
+    - CashSnap project memory and recent chats
+  freshness_policy:
+    update_when:
+      - table columns are added, renamed, removed, or retuned
+      - App formulas, initial values, Valid If rules, or enum values change
+      - bots/actions/processes are renamed or restructured
+      - Ledger SSOT balance contracts change
+      - repair/backfill decisions alter financial behavior
+  confidence:
+    level: high-for-core-financial-model
+    caveat: Some columns may exist in AppSheet that are not yet captured in docs. Use AppSheet as ultimate source for exact generated/hidden/system fields.
+
+standards:
+  ids:
+    row_id_convention: Most tables use Row ID or a table-specific key with UNIQUEID().
+    avoid_display_names_as_keys: true
+  formulas:
+    appsheet_price_clamp_rule: Avoid MAX(LIST(0.0, PriceValue)) because it can trigger LIST type mismatch. Prefer IF(total > 0, total, 0) for Price columns.
+  ledger:
+    source_of_truth: true
+    balance_formula_pattern: SUM(Ledger[Signed Amount]) scoped to the relevant entity/ref
+    no_duplicate_financial_impact: true
+    one_real_world_event_one_ledger_effect: true
+  debug_log:
+    message_format: "[Process] | [Stage] | [Status] | [SourceTable]:[Row Identifier] | [Summary]"
+    details_format: "Key=Value | Key=Value | Key=Value"
+    statuses:
+      - START
+      - SUCCESS
+      - INFO
+      - FAIL
+  docs:
+    table_template: docs/templates/table.md
+    bot_template_style: docs/bots/pmt-allocation-bot.md
+    use_details_blocks: true
+    use_emoji_headers: true
+    append_friendly_changelogs: true
+
+ledger_sign_conventions:
+  positive_increases_amount_owed:
+    - Charge
+    - Debt Charge
+    - Fee
+    - Interest
+    - NSF Fee
+    - Late Fee
+    - Penalty
+    - Purchase
+    - Bill Payment Reversal
+    - Debt Payment Reversal
+    - Principal Reversal
+  negative_decreases_amount_owed:
+    - Bill Payment
+    - Debt Payment
+    - Principal Applied
+    - Credit
+    - Refund
+    - Waiver
+    - Correction
+  adjustment_rule:
+    type: Adjustment
+    positive_categories:
+      - Fee
+      - Late Fee
+      - NSF Fee
+      - Penalty
+      - Interest
+      - Purchase
+    negative_categories:
+      - Credit
+      - Refund
+      - Waiver
+      - Correction
+    default_sign: negative
+
+workflows:
+  bill_payment_flow:
+    path:
+      - Payments
+      - Transaction Links
+      - Ledger
+      - Bill Charges Remaining Amount
+    notes:
+      - Payment Processor Bot creates/continues bill-side allocation work.
+      - Transaction Links are allocation detail, not final balance source after Ledger SSOT.
+      - LedgerBot creates Bill Payment ledger rows from Transaction Links.
+  debt_payment_flow:
+    path:
+      - Payments
+      - PaymentAllocations
+      - Debt Charges if Interest/Fee
+      - Ledger
+      - Debt balance
+    notes:
+      - PaymentAllocations are applied split records.
+      - Debt Charges represent interest/fee obligations.
+      - Principal Applied ledger rows reduce principal for statement-based loans.
+  loan_statement_flow:
+    path:
+      - Statements
+      - Loan_Pmt_Splits
+      - PaymentAllocations
+      - Debt Charges for Interest/Fee
+      - Ledger
+    rules:
+      - Loan_Pmt_Splits are split instructions.
+      - PaymentAllocations are applied split records.
+      - Statement-based principal creates Principal Applied ledger rows only.
+      - Statement-based principal does not create Debt Charges.
+      - Interest/Fee creates or links Debt Charges and creates payment-side ledger rows.
+  returned_payment_flow:
+    path:
+      - Returned/Reversal Payment
+      - Mirrored/reversal Ledger row
+      - Balance restored through Ledger Signed Amount
+    rules:
+      - Do not directly edit Bill Charge or Debt balances.
+      - Returned payments must create ledger entries tied to the original impacted entity.
+  medrecord_invoice_flow:
+    path:
+      - MedRecord Appointment/Invoice
+      - CashSnap Debt
+      - CashSnap payment tracking
+  receipt_inventory_flow:
+    path:
+      - ReceiptKeeper Receipt
+      - Armoury Items
+      - Inventory/asset records
+
+bots:
+  new_adjustment_bot:
+    role: Creates Ledger rows for Adjustments.
+    table: Adjustments
+    trigger: Adds
+  bill_charge_bot:
+    role: Creates Ledger rows for Bill Charges.
+    table: Bill Charges
+    trigger: Adds
+  bill_bot:
+    role: Creates Bill Charges for recurring bills.
+    table: Bills
+    trigger: Updates
+  bill_chg_backfill_check_bot:
+    role: Checks for Bills missing Bill Charges.
+    table: Context
+    trigger: Adds/updates
+    condition: AND([Step]="Check",[ContextStatus]<>"Completed",[ContextStatus]<>"Error",[Cursor In Range?])
+  bill_chg_backfill_advance_bot:
+    role: Creates missing Bill Charges for recurring bills.
+    table: Context
+    trigger: Adds/updates
+    condition: AND([Step]="Advance",[ContextStatus]<>"Completed",[ContextStatus]<>"Error")
+  new_debt_charge_bot:
+    role: Creates positive Debt Charge ledger rows when Debt Charges are added.
+    table: Debt Charges
+    trigger: Adds
+  debt_bot:
+    role: Creates monthly interest charge for active debts when cycle rules indicate.
+    table: Debts
+    trigger: Updates only, Active=TRUE, cycle check
+  new_debt_bot:
+    role: Creates initial Debt Charge row for new Debts.
+    table: Debts
+    trigger: Adds
+  pmt_allocation_bot:
+    role: Converts PaymentAllocations into Debt Charge links, payment-side ledgers, principal applied ledgers, and installment tracking effects.
+    table: PaymentAllocations
+    trigger: Adds Only
+    condition: AND(ISNOTBLANK([PaymentID]), ISNOTBLANK([DebtID]), IN([AllocationType], LIST("Principal", "Interest")))
+    key_rules:
+      - Loan statement-based principal creates Principal Applied ledger and no Debt Charge.
+      - Installment principal may create/link Debt Charges.
+      - Interest/Fee creates or links Debt Charges and creates ledger rows.
+  payment_processor_bot:
+    previous_name: New Payment Bot
+    role: Processes/loops new Payments by creating one allocation per run, then handing off to Payment Completion Bot.
+    table: Payments
+    trigger: Adds and relevant updates
+    works_with:
+      - payment_completion_bot
+      - ledgerbot
+      - pmt_allocation_bot
+    outputs:
+      - Transaction Links for bill payments
+      - PaymentAllocations for debt payments
+      - Debug Log rows
+    design_notes:
+      - Does not directly change final balances.
+      - Creates allocation detail rows that downstream ledger workflows convert into balance impact.
+      - Must be gated/idempotent to avoid duplicate allocations.
+  unmark_paid_if_balance_changes_bot:
+    role: Re-checks bills/debts and unmarks paid when balances change.
+    table: Payments
+    trigger: Adds, Deletes, Updates
+    condition: AND( ISNOTBLANK([Bill ID]), [Bill ID].[Paid] = TRUE, [Bill ID].[Remaining Amount] > 0.0)
+  george_bot:
+    role: Handles cleared payments and executes debt payoff path when applicable.
+    table: Payments
+    trigger: Adds/updates where Cleared=TRUE
+    condition: AND([_THISROW_AFTER].[Payment Status] = "Cleared", [_THISROW_BEFORE].[Payment Status] <> "Cleared", ISBLANK([_THISROW_AFTER].[TriggerSource]), [_THISROW_AFTER].[Transaction Type] = "Payment", ISNOTBLANK([_THISROW_AFTER].[Debt ID]), ISBLANK([_THISROW_AFTER].[Bill ID]))
+  frank_bot:
+    role: Syncs Ledger row for a reversed payment, and sets Return Date on original payment
+    table: Payments
+    trigger: Updates where [Transaction Type] = "Reversal" and [Return Date] is not blank
+  payment_completion_bot:
+    role: Companion finalization bot that checks whether a payment is fully allocated/processed or should re-trigger the processor loop.
+    table: Payments
+    trigger: Payment state changes after allocation attempts. Adds/Updates
+    condition: AND([Transaction Type] = "Payment", [Payment Status] <> "Returned", [Remaining To Allocate] <= 0.0, OR( ISNOTBLANK([Bill ID]), ISNOTBLANK([Debt ID])))
+    responsibilities:
+      - validate remaining payment amount
+      - validate downstream allocation/ledger rows
+      - mark Processed when complete
+      - re-loop when more amount remains
+      - log failures when no target allocation can be found
+  payment_reversal_allocations_bot:
+    role: Creates reversal PaymentAllocations when a payment is reversed.
+    table: PaymentAllocations
+    trigger: Adds where related Payment is a Reversal
+    condition: AND([Transaction Type] = "Reversal", ISNOTBLANK([Reverses Payment]), [Remaining To Allocate] > 0.0, [Processed]<>TRUE)
+  payment_reversal_completion_bot:
+    role: Companion finalization bot that checks whether a reversal payment is fully allocated/processed or should re-trigger the processor loop.
+    table: Payments
+    trigger: Payment state changes after allocation attempts. Adds/Updates
+    condition: AND([Transaction Type] = "Reversal", [Remaining To Allocate] <= 0.0, OR(ISNOTBLANK([Bill ID]), ISNOTBLANK([Debt ID])))
+  pay_period_generator_advance_bot:
+    role: Advances pay periods and creates related context for pay-period-based planning.
+    table: PayPeriod_Generator
+    trigger: Updates where [Run?] = TRUE, NOT([Done?]), and [State] = "Advance"
+  pay_period_generator_check_bot:
+    role: Checks for pay periods that need to be advanced and creates context for the generator bot.
+    table: PayPeriod_Generator
+    trigger: Updates where [Run?] = TRUE, and [State] = "Check"
+  statement_bot:
+    role: General statement processing bot for non-loan statement cases.
+    table: Statements
+    trigger: Adds
+    condition: "OR(ISBLANK([Debt_ID].[Model]), [Debt_ID].[Model] <> \"Loan (Statement-Based)\")"
+    note: Must not process Loan (Statement-Based) statements to avoid duplicate work.
+  loan_statement_bot:
+    role: Processes Loan (Statement-Based) statements.
+    table: Statements
+    trigger: Adds where Debt model is Loan (Statement-Based)
+    condition: '[Debt_ID].[Model] = "Loan (Statement-Based)"'
+    responsibilities:
+      - repair/attach payments in cycle
+      - create allocation context
+      - allocate payments for cycle
+      - lock context
+  payment_repair_bot:
+    role: Repairs/reattaches payments to the correct statement cycle when a payment is misallocated.
+    table: Statements
+    trigger: Adds where [Model] is Credit Card (Statement-Based) or Loan (Statement-Based) and Payments are between Statement Start and End but not linked to the statement
+    responsibilities:
+      - find correct statement cycle for payment
+      - reattach payment to correct statement cycle
+      - reallocate payment through PaymentAllocations and Transaction Links
+      - log repair actions in Debug Log
+  ledgerbot:
+    role: Creates Ledger rows for Transaction Links.
+    table: Transaction Links
+    trigger: Adds
+    outputs:
+      - Ledger rows
+
+
+entities:
+  common_columns:
+    row_id:
+      type: Text
+      key: true
+      initial_value: UNIQUEID()
+      notes: Most tables use Row ID or equivalent unique key.
+    notes:
+      type: LongText/Text
+      notes: Optional user/system notes.
+
+tables:
+  Accounts:
+    purpose: Payment methods, funding sources, and balance containers.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Account Name: {type: Text, label: true}
+      Account Type: {type: Enum, notes: Checking, savings, credit, cash, HSA/FSA, or other funding source classifications.}
+      Active: {type: Yes/No}
+      Notes: {type: LongText}
+  Adjustments:
+    purpose: Manual corrections, credits, fees, waivers, or other non-payment financial adjustments.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Debt ID: {type: Ref, ref: Debts, required: false}
+      Bill ID: {type: Ref, ref: Bills, required: false}
+      Bill Charge ID: {type: Ref, ref: Bill Charges, required: false}
+      Amount: {type: Price}
+      Adjustment Type: {type: Enum, notes: Interest/Credit/Fee/etc.}
+      Signed Amount: {type: Price, formula_summary: Interest/Fee positive; Credit/Waiver/Refund/Correction negative.}
+      Notes: {type: LongText}
+    ledger_contract:
+      - Adjustment detail is not final balance source under Ledger SSOT.
+      - Balance-affecting adjustments must create Ledger rows with the correct Signed Amount.
+  Bills:
+    purpose: Recurring and statement-based bill obligations.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Bill Name: {type: Text, label: true}
+      Due Date: {type: Date}
+      Amount: {type: Price}
+      Type: {type: Enum, values: [Monthly, Quarterly, Semiannually, Annually]}
+      Active: {type: Yes/No}
+      Paid: {type: Yes/No}
+      Payment Submitted: {type: Yes/No}
+      Date Submitted: {type: Date}
+      Date Paid: {type: Date}
+      Next Due Date: {type: Date, formula_summary: EOMONTH-based cycle advancement preferred for monthly/quarterly/semiannual/annual.}
+      Category: {type: Ref, ref: Categories}
+      Bill Status 2: {type: Enum, notes: Manual status updated by action; Paid/Pending/Unpaid based on remaining amount and paid so far.}
+      Current Bill Charge: {type: Ref, ref: Bill Charges}
+      Remaining Amount: {type: Price, physical_or_virtual: physical, notes: Should derive from current charge/ledger-driven charge state where possible.}
+      Paid So Far: {type: Price, virtual: true, notes: Historically sums cleared payments via Transaction Links.}
+      Related Payments: {type: List, virtual: true, ref: Payments}
+      Related Transaction Links: {type: List, virtual: true, ref: Transaction Links}
+      Related Transactions: {type: List, virtual: true}
+  Bill Charges:
+    purpose: Individual bill obligation for a specific cycle/period.
+    ledger_ssot_contract:
+      balance_source: Ledger[Signed Amount]
+      scoped_by: Ledger[Bill Charge ID] = this Bill Charge Row ID
+      descriptive_fields:
+        - Amount
+        - CycleLabel
+        - CycleStart
+        - CycleEnd
+      allocation_detail_not_balance_source:
+        - Transaction Links[Amount Applied]
+        - Adjustments[Signed Amount]
+      required_original_charge_ledger: true
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Bill ID: {type: Ref, ref: Bills}
+      Date: {type: Date}
+      Amount: {type: Price, notes: Original cycle charge amount; descriptive/input once Ledger SSOT is active.}
+      ChargeType: {type: Enum, notes: Charge classification.}
+      CycleLabel: {type: Text}
+      CycleStart: {type: Date}
+      CycleEnd: {type: Date}
+      Remaining Amount:
+        type: Price
+        virtual: true
+        formula: |
+          IF(
+            SUM(
+              SELECT(
+                Ledger[Signed Amount],
+                AND(
+                  [Bill Charge ID] = [_THISROW].[Row ID],
+                  ISNOTBLANK([Signed Amount])
+                )
+              )
+            ) > 0,
+            SUM(
+              SELECT(
+                Ledger[Signed Amount],
+                AND(
+                  [Bill Charge ID] = [_THISROW].[Row ID],
+                  ISNOTBLANK([Signed Amount])
+                )
+              )
+            ),
+            0
+          )
+      Related Adjustments: {type: List, virtual: true, ref: Adjustments}
+      Related Payments: {type: List, virtual: true, ref: Payments}
+      Related Transaction Links: {type: List, virtual: true, ref: Transaction Links}
+    migration_requirements:
+      - Backfill one positive Charge ledger row for each existing Bill Charge if missing.
+      - Validate legacy remaining amount vs ledger remaining amount before formula cutover.
+  Categories:
+    purpose: Optional categorization for bills and debts.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Category: {type: Text, label: true}
+      Related Bills: {type: List, virtual: true, ref: Bills}
+      Related Debts: {type: List, virtual: true, ref: Debts}
+  Payments:
+    purpose: Cash payment records for bills and debts.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Payment Name: {type: Text, label: true}
+      Date: {type: Date}
+      Amount Paid: {type: Price}
+      Type: {type: Enum, values: [Bill, Debt]}
+      Bill ID: {type: Ref, ref: Bills, required: false}
+      Debt ID: {type: Ref, ref: Debts, required: false}
+      Submitted: {type: Yes/No}
+      Cleared: {type: Yes/No}
+      Cleared Date: {type: Date}
+      Payment Method: {type: Ref, ref: Accounts}
+      Selected Bill Charge ID: {type: Ref, ref: Bill Charges, virtual: true}
+      Bill Charge ID: {type: Ref, ref: Bill Charges, physical: true, notes: Filled by initial value/action for stable allocation.}
+      Statement_ID: {type: Ref, ref: Statements, required: false}
+      Processed: {type: Yes/No, notes: Set when Payment Processor/Completion loop is finished.}
+      Reversal Multiplier: {type: Number, notes: Used for reversal behavior/sign handling.}
+      Effective Amount: {type: Price, notes: Signed/effective value after reversal multiplier.}
+    rules:
+      - Payments are source records, not direct balance mutators.
+      - Payments should allocate through Transaction Links or PaymentAllocations before affecting Ledger.
+  Transaction Links:
+    purpose: Bill-side payment allocation records connecting Payments to Bill Charges.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      TransLinkID: {type: Text, key: true, notes: Table-specific key if present.}
+      Payment ID: {type: Ref, ref: Payments}
+      Bill ID: {type: Ref, ref: Bills}
+      Bill Charge ID: {type: Ref, ref: Bill Charges}
+      Amount Applied: {type: Price}
+      CreatedBy: {type: Enum/Text, notes: Bot/user/process marker.}
+      Notes: {type: LongText}
+    ledger_contract:
+      - Transaction Links are allocation detail.
+      - LedgerBot should create one Bill Payment ledger row for each balance-impacting Transaction Link.
+      - Transaction Links should not be summed directly for Bill Charge balances after Ledger SSOT cutover.
+  Debts:
+    purpose: Debt accounts including loans, credit cards, installments, medical debts, and personal debts.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Debt Name: {type: Text, label: true}
+      Debt_Type: {type: Enum, values: [Loan, Credit Card, Medical]}
+      Model: {type: Enum, values: [Loan (Statement-Based), Credit Card, Credit Card (Statement-Based), Installment], notes: Model-aware workflow discriminator.}
+      Due Date: {type: Date}
+      Due Day: {type: Number}
+      Min Payment: {type: Price}
+      Starting Balance: {type: Price}
+      Current Balance: {type: Price, formula_summary: Model-specific; Loan uses starting balance + adjustments + debt charges - cleared payments historically; moving toward Ledger SSOT.}
+      Remaining Balance: {type: Price, formula_summary: Loan uses Principal_Balance + Interest_Balance.}
+      Principal_Balance: {type: Price, notes: For statement-based loans, Starting Balance - Principal Applied ledger total.}
+      Interest_Balance: {type: Price, notes: Interest charged minus interest paid ledger rows.}
+      Principal Paid: {type: Price, notes: Sum of Principal Applied ledger rows.}
+      Interest Charged: {type: Price, notes: Sum of positive interest charge ledger rows.}
+      Interest Paid: {type: Price, notes: Sum of negative interest payment ledger rows.}
+      Paid: {type: Yes/No}
+      Paid Off: {type: Date}
+      Active: {type: Yes/No}
+      Monthly Payment Made: {type: Yes/No}
+      Next Due Date: {type: Date}
+      Entity_ID: {type: Ref, ref: Entities}
+      Source: {type: Enum/Text}
+      Owner: {type: Text/Enum}
+      Account Num: {type: Text}
+      Notes: {type: LongText}
+  Statements:
+    purpose: Statement periods for credit cards and statement-based loans.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Title: {type: Text}
+      Title 2.0: {type: Text, virtual: true, formula_summary: AccountName + MMM YYYY label.}
+      Statement_Start: {type: Date}
+      Statement_End: {type: Date}
+      Debt_ID: {type: Ref, ref: Debts}
+      Account_ID: {type: Ref, ref: Accounts, required: false}
+      Statement_Balance: {type: Price}
+      Prev_Balance: {type: Price}
+      New_Charges: {type: Price}
+      Fees: {type: Price}
+      Interest: {type: Price}
+      Min_Pmt: {type: Price}
+      Fee Description: {type: LongText}
+    models:
+      credit_card_statement_charge_model: Prev Balance + Purchases + Fees + Interest - Payments +/- Adjustments
+      loan_statement_based_model: Previous Principal Balance - Principal Paid; interest tracked through Loan_Pmt_Splits -> PaymentAllocations -> Debt Charges -> Ledger
+  Debt Charges:
+    purpose: Interest, fees, penalties, principal obligations for installments, and other non-principal debt charges.
+    columns:
+      DebtChargeID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Row ID: {type: Text}
+      Debt ID: {type: Ref, ref: Debts}
+      Amount: {type: Price}
+      Interest: {type: Price}
+      Balance Snapshot: {type: Price}
+      Statement_ID: {type: Ref, ref: Statements}
+      ChargeType: {type: Enum, values: [Interest, Fee, Principal, Penalty, Purchase]}
+      CycleLabel: {type: Text}
+      CycleStart: {type: Date}
+      CycleEnd: {type: Date}
+      ContextID: {type: Ref, ref: Context}
+      PaymentID: {type: Ref, ref: Payments}
+      Ledger Entry: {type: Ref, ref: Ledger}
+      Notes: {type: LongText}
+      Label: {type: Text, virtual: true, formula_summary: Dbt_chg_lbl physical label source.}
+      Dbt_chg_lbl: {type: Text, physical: true}
+      Is Reversal?: {type: Yes/No, notes: Used by Ledger Signed Amount formula to invert Debt Charge sign.}
+  PaymentAllocations:
+    purpose: Debt-side applied split records.
+    columns:
+      PaymentAllocationID: {type: Text, key: true, initial_value: UNIQUEID()}
+      PaymentID: {type: Ref, ref: Payments}
+      DebtID: {type: Ref, ref: Debts}
+      StatementID: {type: Ref, ref: Statements}
+      Debt Charge ID: {type: Ref, ref: Debt Charges, required: false}
+      AllocationType: {type: Enum, values: [Interest, Principal, Fee]}
+      Amount: {type: Price}
+      CycleLabel: {type: Text}
+      AllocationOrder: {type: Number}
+      RemainingInterestAfter: {type: Price}
+      CreatedBy: {type: Enum/Text}
+      IsLocked: {type: Yes/No}
+      Is Reversal?: {type: Yes/No}
+      Is Correction?: {type: Yes/No}
+      Installment Schedule ID: {type: Ref, ref: Installment Schedule, required: false}
+      Allocation Role: {type: Enum, formula_summary: Reversal/Correction/Scheduled/Extra based on flags, installment model, and schedule link.}
+      Counts Towards Installment: {type: Yes/No, formula_summary: Debt model is Installment and AllocationType is Principal.}
+      Notes: {type: LongText}
+    ownership_boundary:
+      - Applied split record, not the charge owed.
+      - Pmt Allocation Bot converts it into Ledger effects and Debt Charge links as needed.
+  Loan_Pmt_Splits:
+    purpose: Loan payment split instruction rows.
+    columns:
+      PaymentID: {type: Ref, ref: Payments}
+      Statement_ID: {type: Ref, ref: Statements}
+      Split Label: {type: Text}
+      Split Date: {type: Date}
+      principal_amt: {type: Price}
+      interest_amt: {type: Price}
+      fees_amt: {type: Price}
+    rules:
+      - Instruction/source table only.
+      - Should not directly create duplicate Interest Debt Charges.
+      - Historical Split Happens bot path was disabled due to duplicate interest charges.
+  Ledger:
+    purpose: Financial source of truth and audit trail.
+    columns:
+      Row ID: {type: Text, initial_value: UNIQUEID()}
+      Label: {type: Text, formula_ref: label-formula, initial_value: UNIQUEID()}
+      LedgerID: {type: Text, key: true, initial_value: '[Row ID]'}
+      Date: {type: Date, initial_value: TODAY()}
+      Amount: {type: Price, notes: Raw absolute amount.}
+      Signed Amount:
+        type: Price
+        virtual: true
+        formula: |
+          [Amount]
+          *
+          IFS(
+            IN([Type], {"Bill Payment", "Debt Payment", "Debt Paid Off", "Principal Applied"}), -1,
+
+            [Type] = "Adjustment",
+              IFS(
+                IN([Charge Category], {"Fee", "Late Fee", "NSF Fee", "Penalty", "Interest","Purchase"}), 1,
+                IN([Charge Category], {"Credit", "Refund", "Waiver", "Correction"}), -1,
+                TRUE, -1
+              ),
+
+            [Type] = "Debt Charge",
+              IF(
+                [Debt Charge ID].[Is Reversal?] = TRUE,
+                -1,
+                1
+              ),
+
+            IN([Type], {"Bill Payment Reversal", "Debt Payment Reversal", "Principal Reversal", "Charge"}), 1,
+
+            TRUE, 1
+          )
+      Type:
+        type: Enum
+        values:
+          - Charge
+          - Bill Payment
+          - Debt Payment
+          - Debt Paid Off
+          - Principal Applied
+          - Adjustment
+          - Debt Charge
+          - Bill Payment Reversal
+          - Debt Payment Reversal
+          - Principal Reversal
+      Affects Balance?: {type: Yes/No, virtual: true, notes: Controls inclusion in totals if/when implemented.}
+      Charge Category: {type: Enum, notes: Interest, Fee, Credit, Refund, Waiver, Correction, Purchase, etc.}
+      Allocation Type: {type: Enum, values: [Principal, Interest, Fee]}
+      Bill ID: {type: Ref, ref: Bills, required: false}
+      Debt ID: {type: Ref, ref: Debts, required: false}
+      PaymentID: {type: Ref, ref: Payments, required: false}
+      Adjustment ID: {type: Ref, ref: Adjustments, required: false}
+      Bill Charge ID: {type: Ref, ref: Bill Charges, required: false}
+      Debt Charge ID: {type: Ref, ref: Debt Charges, required: false}
+      TransLink: {type: Ref, ref: Transaction Links, required: false}
+      PmtAllocID: {type: Ref, ref: PaymentAllocations, required: false}
+      StatementID: {type: Ref, ref: Statements, required: false}
+      Src Row ID: {type: Text, notes: Originating row key.}
+      Notes: {type: LongText}
+      Label2: {type: Text, virtual: true, formula_summary: Type + Payment Name + Date display label.}
+      Installment Schedule ID: {type: Ref, ref: Installment Schedule, required: false}
+      Counts Towards Installment: {type: Yes/No}
+      IsCashMovement: {type: Yes/No, virtual: true, formula_summary: TRUE for Bill Payment, Debt Payment, Bill Payment Reversal, Debt Payment Reversal.}
+      Bill/Debt: {type: Text, virtual: true, formula_summary: Bill if Bill ID present, otherwise Debt.}
+      Ledger Group Key: {type: Text, virtual: true, formula_summary: Group by Bill/Debt display name.}
+      Ledger Group Sort: {type: Text, virtual: true, formula_summary: Sort by Bill/Debt display name.}
+      Matched PmtAllocID: {type: Text, virtual: true, notes: Diagnostic/helper matching ledger to allocation.}
+    rules:
+      - If it affects money, it must exist in Ledger.
+      - All balances should ultimately derive from SUM(Ledger[Signed Amount]).
+      - Missing rows create broken balances.
+      - Duplicate rows create inflated/deflated balances.
+  Debug Log:
+    purpose: Structured automation logging for traceability and diagnostics.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Timestamp: {type: DateTime, initial_value: NOW()}
+      Process: {type: Text, notes: High-level system/bot name.}
+      Action: {type: Text, notes: Action name when applicable.}
+      Stage: {type: Text, notes: Logical step.}
+      Step: {type: Text, notes: Alternate/legacy step field if present.}
+      Status: {type: Enum, values: [START, SUCCESS, INFO, FAIL]}
+      Source Table: {type: Text}
+      Message: {type: LongText}
+      Details: {type: LongText, notes: Structured key=value diagnostics.}
+      TraceID: {type: Text, notes: Shared trace key, often PaymentID.}
+      Row Identifier: {type: Text}
+      Bill ID: {type: Ref, ref: Bills, required: false}
+      Debt ID: {type: Ref, ref: Debts, required: false}
+      Payment ID: {type: Ref, ref: Payments, required: false}
+      TransLink ID: {type: Ref, ref: Transaction Links, required: false}
+      LedgerID: {type: Ref, ref: Ledger, required: false}
+      ProcessRunID: {type: Text}
+      TriggerSource: {type: Text}
+  Context:
+    purpose: Workflow context for multi-step automation, especially loan allocation context.
+    alternate_name: LoanAllocationContext
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Timestamp: {type: DateTime, initial_value: NOW()}
+      Current debt: {type: Ref, ref: Debts}
+      StatementID: {type: Ref, ref: Statements}
+      ProcessRunID: {type: Text}
+      InterestRemaining: {type: Price}
+      CycleStart: {type: Date}
+      CycleEnd: {type: Date}
+      CycleLabel: {type: Text}
+      ContextStatus: {type: Enum}
+  Installment Schedule:
+    purpose: Expected installment payment schedule and scheduled principal tracking.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Debt ID: {type: Ref, ref: Debts}
+      Due Date: {type: Date}
+      Scheduled Amount: {type: Price}
+      Principal Amount: {type: Price}
+      Interest Amount: {type: Price}
+      Status: {type: Enum}
+      Related PaymentAllocations: {type: List, virtual: true, ref: PaymentAllocations}
+  Pay Period:
+    purpose: Pay period planning windows.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Start Date: {type: Date}
+      End Date: {type: Date}
+      Label: {type: Text}
+      Status: {type: Enum}
+  Paycheck Selector:
+    purpose: Active pay-period selector/helper table.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Selected Pay Period: {type: Ref, ref: Pay Period}
+  Income:
+    purpose: Expected income sources.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Income Name: {type: Text}
+      Expected Amount: {type: Price}
+      Frequency: {type: Enum}
+      Active: {type: Yes/No}
+  Income Deposits:
+    purpose: Actual income deposit records.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Income ID: {type: Ref, ref: Income}
+      Deposit Date: {type: Date}
+      Amount: {type: Price}
+      Account ID: {type: Ref, ref: Accounts}
+  Summary Totals:
+    purpose: Dashboard/reporting helper totals.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Label: {type: Text}
+      Amount: {type: Price}
+      Category: {type: Enum/Text}
+  UserSettings:
+    purpose: App configuration and preferences.
+    columns:
+      Row ID: {type: Text, key: true, initial_value: UNIQUEID()}
+      Setting Name: {type: Text}
+      Setting Value: {type: Text}
+      Notes: {type: LongText}
+
+reconciliation_checks:
+  bill_charge_missing_original_charge_ledger:
+    description: Find Bill Charges without a positive original Charge ledger row.
+    appsheet_expression: |
+      COUNT(
+        SELECT(
+          Ledger[LedgerID],
+          AND(
+            [Bill Charge ID] = [_THISROW].[Row ID],
+            [Type] = "Charge"
+          )
+        )
+      ) = 0
+  bill_charge_ledger_remaining_amount:
+    appsheet_expression: |
+      IF(
+        SUM(
+          SELECT(
+            Ledger[Signed Amount],
+            AND(
+              [Bill Charge ID] = [_THISROW].[Row ID],
+              ISNOTBLANK([Signed Amount])
+            )
+          )
+        ) > 0,
+        SUM(
+          SELECT(
+            Ledger[Signed Amount],
+            AND(
+              [Bill Charge ID] = [_THISROW].[Row ID],
+              ISNOTBLANK([Signed Amount])
+            )
+          )
+        ),
+        0
+      )
+  loan_payment_expected_rows:
+    expected:
+      PaymentAllocations: 2
+      Interest_Debt_Charge: 1
+      Ledger_Rows: 3
+    ledger_rows:
+      - +Interest Charge
+      - -Interest Payment
+      - -Principal Applied
+
+known_issues:
+  - area: Bots
+    issue: Some flows may double-fire without strong gating/idempotency.
+  - area: Ledger
+    issue: Legacy full-payment debt ledger rows can double-count principal if split ledgers also exist.
+  - area: Loans
+    issue: Interest charges can duplicate if both Loan_Pmt_Splits and PaymentAllocations create charges.
+  - area: Statements
+    issue: Payments/reversals may belong to different statement periods.
+  - area: Formulas
+    issue: Circular dependencies can occur in bill cycle logic.
+  - area: Performance
+    issue: Debug Log rows and repeated SELECT() formulas can slow sync.
+  - area: Cross-App
+    issue: MedRecord, Armoury, and ReceiptKeeper are less optimized than CashSnap.
+  - area: Entity System
+    issue: Organization/entity model needs redesign.
+
+current_priorities:
+  - Stabilize CashSnap Ledger SSOT.
+  - Repair and validate Bill Charges Ledger SSOT cutover.
+  - Stabilize Payment Processor Bot + Payment Completion Bot loop.
+  - Stabilize PaymentAllocation workflow.
+  - Repair Loan Statement workflow, especially interest-side ledger rows.
+  - Finish table documentation with full column inventories and formulas.
+  - Keep AI_CONTEXT.md, cashsnap-schema.yml, and SCHEMA_CHANGELOG.md current.
